@@ -1,0 +1,245 @@
+Title:To use PCA Algorithm for dimensionality reduction. You have a dataset that includes measurements for different variables on wine (alcohol, ash, magnesium, and so on). Apply PCA algorithm & transform this data so that most variations in the measurements of the variables are captured by a small number of principal components so that it is easier to distinguish between red and white wine by inspecting these principal components. Dataset Link: https://media.geeksforgeeks.org/wp-content/uploads/Wine.csv
+
+import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+# Load and preview dataset
+df = pd.read_csv('Wine.csv')
+print(df.isnull().sum())  # Checking for missing values
+
+# Separate features and target
+X = df.drop('Customer_Segment', axis=1)
+y = df['Customer_Segment']
+
+# Standardize features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Apply PCA
+pca = PCA()
+X_pca = pca.fit_transform(X_scaled)
+
+# Plot cumulative explained variance
+explained_variance_ratio = pca.explained_variance_ratio_
+plt.plot(range(1, len(explained_variance_ratio) + 1), explained_variance_ratio.cumsum(), marker='o', linestyle='--')
+plt.xlabel('Number of Principal Components')
+plt.ylabel('Cumulative Explained Variance')
+plt.title('Explained Variance Ratio')
+plt.show()
+
+# Transform data using chosen number of components
+n_components = 2
+pca = PCA(n_components=n_components)
+X_pca = pca.fit_transform(X_scaled)
+
+# Plot PCA results for red and white wine
+red_indices = y[y == 1].index
+white_indices = y[y == 2].index
+plt.scatter(X_pca[red_indices, 0], X_pca[red_indices, 1], c='red', label='Red Wine')
+plt.scatter(X_pca[white_indices, 0], X_pca[white_indices, 1], c='blue', label='White Wine')
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+plt.legend()
+plt.title('PCA: Red Wine vs. White Wine')
+plt.show()
+
+# Title:Predict the price of the Uber ride from a given pickup point to the agreed drop-off location. 
+#      Perform following tasks: 1. Pre-process the dataset. 2. Identify outliers. 3. Check the correlation. 
+#     4. Implement linear regression and ridge, Lasso regression models. 5. Evaluate the models and compare their respective scores like R2, RMSE, etc.
+#     Dataset link: https://www.kaggle.com/datasets/yasserh/uber-fares-dataset
+
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.impute import SimpleImputer
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Load data
+data = pd.read_csv('uber.csv')
+data['pickup_datetime'] = pd.to_datetime(data['pickup_datetime'])
+data['hour'] = data['pickup_datetime'].dt.hour
+data['day_of_week'] = data['pickup_datetime'].dt.dayofweek
+data.drop(columns=['Unnamed: 0', 'key', 'pickup_datetime'], inplace=True)
+
+# Impute missing values
+imputer = SimpleImputer(strategy='mean')
+data_imputed = pd.DataFrame(imputer.fit_transform(data), columns=data.columns)
+
+# Define features and target
+X, y = data_imputed.drop(columns=['fare_amount']), data_imputed['fare_amount']
+
+# Train-test split and scaling
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+scaler = StandardScaler()
+X_train, X_test = scaler.fit_transform(X_train), scaler.transform(X_test)
+
+# Box plot of fare amount
+plt.figure(figsize=(8, 6))
+sns.boxplot(data=data, x='fare_amount')
+plt.title('Box Plot of Fare Amount')
+plt.show()
+
+# Correlation heatmap
+correlation_matrix = data.corr()
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm")
+plt.title('Correlation Matrix Heatmap')
+plt.show()
+
+# Regression models and evaluation
+def evaluate_model(model, X_train, y_train, X_test, y_test):
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+    return r2_score(y_test, predictions), np.sqrt(mean_squared_error(y_test, predictions))
+
+# Instantiate models
+lr = LinearRegression()
+ridge = Ridge(alpha=1.0)
+lasso = Lasso(alpha=1.0)
+
+# Model evaluations
+print("Linear Regression - R2:", *evaluate_model(lr, X_train, y_train, X_test, y_test))
+print("Ridge Regression - R2:", *evaluate_model(ridge, X_train, y_train, X_test, y_test))
+print("Lasso Regression - R2:", *evaluate_model(lasso, X_train, y_train, X_test, y_test))
+
+
+Implementation of Support Vector Machines (SVM) for classifying images of handwritten digits into their respective numerical classes (0 to 9).
+
+Import necessary libraries
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.datasets import fetch_openml
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+
+# Load the MNIST dataset
+mnist = fetch_openml('mnist_784', version=1)
+X, y = mnist.data, mnist.target.astype(int)
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Standardize the features
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Train a Support Vector Machine (SVM) classifier
+svm_classifier = SVC(kernel='linear')
+svm_classifier.fit(X_train, y_train)
+
+# Predict and evaluate the model
+y_pred = svm_classifier.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
+
+# Visualize some predictions
+n_samples = 10
+random_indices = np.random.choice(len(X_test), n_samples, replace=False)
+
+plt.figure(figsize=(12, 6))
+for i, idx in enumerate(random_indices):
+    plt.subplot(2, 5, i + 1)
+    plt.imshow(X_test[idx].reshape(28, 28), cmap='gray')
+    plt.title(f"Pred: {y_pred[idx]}")
+    plt.axis('off')
+
+plt.tight_layout()
+plt.show()
+Title:Implement K-Means clustering on Iris.csv dataset. Determine the number of clusters using the elbow method. Dataset Link: https://www.kaggle.com/datasets/uciml/iris
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+import plotly.express as px
+
+# Load the Iris dataset
+data = pd.read_csv('Iris.csv')
+
+# Drop irrelevant columns and check for missing values
+data.drop('Id', axis=1, inplace=True)
+
+# Extract features for clustering
+clustering_data = data.iloc[:, :-1]
+
+# Elbow Method to determine the optimal number of clusters
+wcss = []
+for i in range(1, 11):
+    kmeans = KMeans(n_clusters=i, init='k-means++', random_state=42)
+    kmeans.fit(clustering_data)
+    wcss.append(kmeans.inertia_)
+
+# Plot the Elbow Method graph
+plt.figure(figsize=(10, 5))
+plt.plot(range(1, 11), wcss, marker='o', color='b')
+plt.title('Elbow Method')
+plt.xlabel('Number of Clusters')
+plt.ylabel('Within-Cluster Sum of Squares (WCSS)')
+plt.show()
+
+# Apply K-Means clustering with the optimal number of clusters
+kmeans_optimal = KMeans(n_clusters=3, init='k-means++', random_state=42)
+data['Cluster_Prediction'] = kmeans_optimal.fit_predict(clustering_data)
+
+# Visualize clusters with Plotly
+fig = px.scatter(data, x='SepalLengthCm', y='SepalWidthCm', color='Cluster_Prediction',
+                 title='K-Means Clustering of Iris Data (Sepal Dimensions)',
+                 labels={'SepalLengthCm': 'Sepal Length (cm)', 'SepalWidthCm': 'Sepal Width (cm)'},
+                 opacity=0.7)
+
+# Add centroids to the plot
+for i, center in enumerate(kmeans_optimal.cluster_centers_):
+    fig.add_scatter(x=[center[0]], y=[center[1]], mode='markers',
+                    marker=dict(size=15, color='black', symbol='x'),
+                    name=f'Centroid {i+1}')
+
+fig.show()
+
+A. Implement Random Forest Classifier model to predict the safety of the car. Dataset link: https://www.kaggle.com/datasets/elikplim/car-evaluation-data-set
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+import category_encoders as ce
+
+# Load and preprocess the data
+df = pd.read_csv('car_evaluation.csv')
+df.columns = ['buying', 'maint', 'doors', 'persons', 'lug_boot', 'safety', 'class']
+
+# Define features and target
+X = df.drop(['class'], axis=1)
+y = df['class']
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Encode categorical features
+encoder = ce.OrdinalEncoder(cols=X.columns)
+X_train = encoder.fit_transform(X_train)
+X_test = encoder.transform(X_test)
+
+# Train and evaluate the Random Forest model
+rfc = RandomForestClassifier(random_state=0)
+rfc.fit(X_train, y_train)
+y_pred = rfc.predict(X_test)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Model accuracy with default parameters: {accuracy:.4f}")
+
+# Optional: Hyperparameter tuning for improved performance
+rfc_100 = RandomForestClassifier(n_estimators=100, random_state=0)
+rfc_100.fit(X_train, y_train)
+y_pred_100 = rfc_100.predict(X_test)
+print(f"Model accuracy with n_estimators=100: {accuracy_score(y_test, y_pred_100):.4f}")
